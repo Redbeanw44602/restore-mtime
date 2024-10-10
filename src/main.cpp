@@ -1,6 +1,11 @@
-#include <argparse/argparse.hpp>
+#include "database.h"
 
 #include "util/hash.h"
+#include "util/time.h"
+
+#include <argparse/argparse.hpp>
+
+#include <filesystem>
 
 void setup_logger() {
 #ifdef DEBUG
@@ -57,6 +62,44 @@ int main(int argc, char** argv) try {
         auto paths       = std::move(directories);
         paths.reserve(paths.size() + files.size());
         paths.insert(paths.end(), std::make_move_iterator(files.begin()), std::make_move_iterator(files.end()));
+
+        Database db;
+        for (const auto& path : paths) {
+            if (std::filesystem::is_directory(path)) {
+                for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+                    if (!entry.is_regular_file()) {
+                        if (!entry.is_directory())
+                            logging::warn("'{}' is not a regular file, ignored.", entry.path().string());
+                        continue;
+                    }
+                    auto file_hash = util::hash::calc_file_md5(entry.path().string());
+                    logging::debug("[{}:{}] {}", file_hash, "x", entry.path().string());
+                    db.storeLastModifiedTime(file_hash, util::time::from_filetime(entry.last_write_time()));
+                }
+            } else {
+                if (!std::filesystem::exists(path)) {
+                    logging::warn("'{}' is not exists, ignored", path);
+                    continue;
+                }
+                if (!std::filesystem::is_regular_file(path)) {
+                    logging::warn("'{}' is not a regular file, ignored.", path);
+                    continue;
+                }
+                auto file_hash = util::hash::calc_file_md5(path);
+                logging::debug("[{}:{}] {}", file_hash, "x", path);
+                db.storeLastModifiedTime(file_hash, util::time::from_filetime(std::filesystem::last_write_time(path)));
+            }
+        }
+
+        auto output_file_path = program_save.get<std::string>("-o");
+
+        std::error_code ec;
+        db.saveTo(output_file_path, ec);
+
+        if (ec) {
+            logging::error(ec.message());
+            return 1;
+        }
 
         return 0;
     }
