@@ -6,7 +6,7 @@
 #include <openssl/evp.h>
 #include <openssl/md5.h>
 
-namespace hash {
+namespace util::hash {
 
 std::string calc_file_md5(std::string_view path) {
     std::ifstream file(path.data(), std::ios::binary);
@@ -35,4 +35,4 @@ std::string calc_file_md5(std::string_view path) {
     return stream.str();
 }
 
-} // namespace hash
+} // namespace util::hash
