@@ -27,9 +27,10 @@ std::string calc_file_md5(std::string_view path) {
     EVP_MD_CTX_free(mdctx);
 
     std::stringstream stream;
-    stream << std::hex << std::setw(2) << std::setfill('0');
+    stream << std::hex << std::setfill('0');
     for (unsigned int idx = 0; idx < md5_digest_length; idx++) {
-        stream << static_cast<int>(md5_digest[idx]);
+        // std::setw will be reset after each input/output.
+        stream << std::setw(2) << static_cast<int>(md5_digest[idx]);
     }
 
     return stream.str();
