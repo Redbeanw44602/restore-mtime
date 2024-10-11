@@ -72,9 +72,10 @@ int main(int argc, char** argv) try {
                             logging::warn("'{}' is not a regular file, ignored.", entry.path().string());
                         continue;
                     }
-                    auto file_hash = util::hash::calc_file_md5(entry.path().string());
-                    logging::debug("[{}:{}] {}", file_hash, "x", entry.path().string());
-                    db.storeLastModifiedTime(file_hash, util::time::from_filetime(entry.last_write_time()));
+                    auto file_hash  = util::hash::calc_file_md5(entry.path().string());
+                    auto file_mtime = util::time::from_filetime(entry.last_write_time());
+                    logging::debug("[{}:{}] {}", file_hash, file_mtime, entry.path().string());
+                    db.storeLastModifiedTime(file_hash, file_mtime);
                 }
             } else {
                 if (!std::filesystem::exists(path)) {
@@ -85,9 +86,10 @@ int main(int argc, char** argv) try {
                     logging::warn("'{}' is not a regular file, ignored.", path);
                     continue;
                 }
-                auto file_hash = util::hash::calc_file_md5(path);
-                logging::debug("[{}:{}] {}", file_hash, "x", path);
-                db.storeLastModifiedTime(file_hash, util::time::from_filetime(std::filesystem::last_write_time(path)));
+                auto file_hash  = util::hash::calc_file_md5(path);
+                auto file_mtime = util::time::from_filetime(std::filesystem::last_write_time(path));
+                logging::debug("[{}:{}] {}", file_hash, file_mtime, path);
+                db.storeLastModifiedTime(file_hash, file_mtime);
             }
         }
 
@@ -100,6 +102,8 @@ int main(int argc, char** argv) try {
             logging::error(ec.message());
             return 1;
         }
+
+        logging::info("Database successfully saved to: {}", output_file_path);
 
         return 0;
     }

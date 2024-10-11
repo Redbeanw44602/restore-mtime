@@ -3,7 +3,7 @@
 class Database {
 public:
     using FileHashT = std::string;
-    using MTimeT    = unsigned long long;
+    using MTimeT    = time_t;
 
     // TODO: replace with std::expected
     static std::optional<Database> fromFile(std::string_view path, std::error_code& ec);
