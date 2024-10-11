@@ -14,6 +14,8 @@ void setup_logger() {
     logging::set_pattern("[%H:%M:%S.%e] [%^%l%$] %v");
 }
 
+namespace fs = std::filesystem;
+
 int main(int argc, char** argv) try {
 
     setup_logger();
@@ -56,6 +58,8 @@ int main(int argc, char** argv) try {
 
     // clang-format on
 
+    std::error_code ec;
+
     if (program.is_subcommand_used(program_save)) {
         auto directories = program_save.get<std::vector<std::string>>("-d");
         auto files       = program_save.get<std::vector<std::string>>("-f");
@@ -65,8 +69,8 @@ int main(int argc, char** argv) try {
 
         Database db;
         for (const auto& path : paths) {
-            if (std::filesystem::is_directory(path)) {
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+            if (fs::is_directory(path)) {
+                for (const auto& entry : fs::recursive_directory_iterator(path)) {
                     if (!entry.is_regular_file()) {
                         if (!entry.is_directory())
                             logging::warn("'{}' is not a regular file, ignored.", entry.path().string());
@@ -78,24 +82,23 @@ int main(int argc, char** argv) try {
                     db.storeLastModifiedTime(file_hash, file_mtime);
                 }
             } else {
-                if (!std::filesystem::exists(path)) {
+                if (!fs::exists(path)) {
                     logging::warn("'{}' is not exists, ignored", path);
                     continue;
                 }
-                if (!std::filesystem::is_regular_file(path)) {
+                if (!fs::is_regular_file(path)) {
                     logging::warn("'{}' is not a regular file, ignored.", path);
                     continue;
                 }
                 auto file_hash  = util::hash::calc_file_md5(path);
-                auto file_mtime = util::time::from_filetime(std::filesystem::last_write_time(path));
-                logging::debug("[{}:{}] {}", file_hash, file_mtime, path);
+                auto file_mtime = util::time::from_filetime(fs::last_write_time(path));
+                logging::debug("Added [{}:{}] for '{}'", file_hash, file_mtime, path);
                 db.storeLastModifiedTime(file_hash, file_mtime);
             }
         }
 
         auto output_file_path = program_save.get<std::string>("-o");
 
-        std::error_code ec;
         db.saveTo(output_file_path, ec);
 
         if (ec) {
@@ -109,6 +112,31 @@ int main(int argc, char** argv) try {
     }
 
     if (program.is_subcommand_used(program_restore)) {
+        auto input_file_path = program_restore.get<std::string>("-i");
+
+        auto db = Database::fromFile(input_file_path, ec);
+        if (ec) {
+            logging::error(ec.message());
+            return 1;
+        }
+
+        auto base_dir = program_restore.get<std::string>("-b");
+        if (!fs::is_directory(base_dir)) {
+            logging::error("'{}' is not a valid directory.", base_dir);
+            return 1;
+        }
+
+        for (auto& entry : fs::recursive_directory_iterator(base_dir)) {
+            if (!entry.is_regular_file()) continue;
+            auto path = entry.path().string();
+            logging::debug("walking... {}", path);
+            auto file_hash = util::hash::calc_file_md5(path);
+
+            if (auto mtime = db->queryLastModifiedTime(file_hash)) {
+                logging::info("Restore the mtime of '{}' to {} ({})", path, *mtime, util::time::to_string(*mtime));
+                fs::last_write_time(path, util::time::to_filetime(*mtime));
+            }
+        }
         return 0;
     }
 

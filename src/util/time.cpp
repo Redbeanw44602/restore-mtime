@@ -17,4 +17,14 @@ time_t from_filetime(const std::filesystem::file_time_type& filetime) {
     return duration.count() + std_time_point_to_timestamp_second_offset;
 }
 
+std::string to_string(time_t timestamp) {
+    auto time_point = std::chrono::system_clock::from_time_t(timestamp);
+    auto time       = std::chrono::system_clock::to_time_t(time_point);
+    auto localtime  = std::localtime(&time);
+
+    std::ostringstream stream;
+    stream << std::put_time(localtime, "%Y-%m-%d %H:%M:%S %Z");
+    return stream.str();
+}
+
 } // namespace util::time

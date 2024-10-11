@@ -28,15 +28,16 @@ std::optional<Database> Database::fromFile(std::string_view path, std::error_cod
             ec = make_database_load_error(DatabaseLoadErrorCode::IllegalFileFormat);
             return {};
         }
-        auto hash     = line.substr(0, space_position + 1);
+        auto hash     = line.substr(0, space_position);
         auto time_str = line.substr(space_position);
 
         auto time_val = util::string::to_longint(time_str);
-        if (!time_val || util::string::is_hexstring(hash)) {
+        if (!time_val || !util::string::is_hexstring(hash)) {
             ec = make_database_load_error(DatabaseLoadErrorCode::IllegalFileFormat);
             return {};
         }
 
+        logging::debug("Loaded [{}:{}]", hash, *time_val);
         result.storeLastModifiedTime(hash, *time_val);
     }
     return result;
