@@ -7,6 +7,7 @@ on:
       - .github/workflows/build-linux.yml
       - src/**
       - xmake.lua
+  workflow_dispatch:
 
 env:
   BUILD_GCC_VERSION: 14
