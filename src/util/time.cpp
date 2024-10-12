@@ -2,19 +2,15 @@
 
 namespace util::time {
 
-constexpr time_t std_time_point_to_timestamp_second_offset = 6437635199;
-
 std::filesystem::file_time_type to_filetime(time_t timestamp) {
-    timestamp       -= std_time_point_to_timestamp_second_offset;
-    auto time_point  = std::chrono::system_clock::from_time_t(timestamp);
-    auto duration    = std::chrono::time_point_cast<std::filesystem::file_time_type::duration>(time_point);
-    return std::filesystem::file_time_type(duration.time_since_epoch());
+    auto time_point = std::chrono::system_clock::from_time_t(timestamp);
+    return std::chrono::clock_cast<std::chrono::file_clock>(time_point);
 }
 
 time_t from_filetime(const std::filesystem::file_time_type& filetime) {
-    auto time_point = filetime.time_since_epoch();
-    auto duration   = std::chrono::duration_cast<std::chrono::seconds>(time_point);
-    return duration.count() + std_time_point_to_timestamp_second_offset;
+    auto system_clock = std::chrono::clock_cast<std::chrono::system_clock>(filetime);
+    auto time_point   = system_clock.time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::seconds>(time_point).count();
 }
 
 std::string to_string(time_t timestamp) {
