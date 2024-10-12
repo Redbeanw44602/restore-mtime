@@ -1,0 +1,47 @@
+name: Build (Windows)
+
+on:
+  push:
+    branches: [ "*" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        mode:
+          - debug
+          - release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild environemnt
+        uses: microsoft/setup-msbuild@v2
+      
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+      
+      - name: Restore xmake cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/.xmake
+          key: xmake-windows-${{ hashFiles('xmake.lua') }}
+          restore-keys: |
+            xmake-windows-
+    
+      - name: Configure
+        run: |
+          xmake f -a x64 -m ${{ matrix.mode }} -p windows -v -y
+    
+      - name: Build
+        run: |
+          xmake -v -y
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-mtime-${{ matrix.mode }}-windows-x64-${{ github.sha }}
+          path: |
+            build/windows/x64/${{ matrix.mode }}

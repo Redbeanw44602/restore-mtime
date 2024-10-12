@@ -1,6 +1,6 @@
 #pragma once
 
-// Save
+// Load
 
 enum class DatabaseLoadErrorCode { SUCCESS = 0, UnableToOpenFile, UnableToReadHeader, IllegalFileFormat };
 
