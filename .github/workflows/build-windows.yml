@@ -3,6 +3,14 @@ name: Build (Windows)
 on:
   push:
     branches: [ "*" ]
+    paths:
+        - .github/workflows/build-windows.yml
+        - src/**
+        - xmake.lua
+
+env:
+  BUILD_PLATFORM: windows
+  BUILD_ARCHITECTURE: x64
 
 jobs:
   build:
@@ -15,9 +23,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup MSBuild environemnt
-        uses: microsoft/setup-msbuild@v2
       
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
@@ -27,13 +32,13 @@ jobs:
         with:
           path: |
             ~/AppData/Local/.xmake
-          key: xmake-windows-${{ hashFiles('xmake.lua') }}
+          key: xmake-${{ env.BUILD_PLATFORM }}-${{ hashFiles('xmake.lua') }}
           restore-keys: |
-            xmake-windows-
+            xmake-${{ env.BUILD_PLATFORM }}-
     
       - name: Configure
         run: |
-          xmake f -a x64 -m ${{ matrix.mode }} -p windows -v -y
+          xmake f -a ${{ env.BUILD_ARCHITECTURE }} -m ${{ matrix.mode }} -p ${{ env.BUILD_PLATFORM }} -v -y
     
       - name: Build
         run: |
@@ -42,6 +47,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: restore-mtime-${{ matrix.mode }}-windows-x64-${{ github.sha }}
+          name: restore-mtime-${{ matrix.mode }}-${{ env.BUILD_PLATFORM }}-${{ env.BUILD_ARCHITECTURE }}-${{ github.sha }}
           path: |
-            build/windows/x64/${{ matrix.mode }}
+            build/${{ env.BUILD_PLATFORM }}/${{ env.BUILD_ARCHITECTURE }}/${{ matrix.mode }}

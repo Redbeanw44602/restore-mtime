@@ -3,6 +3,16 @@ name: Build (Linux)
 on:
   push:
     branches: [ "*" ]
+    paths:
+      - .github/workflows/build-linux.yml
+      - src/**
+      - xmake.lua
+
+env:
+  BUILD_GCC_VERSION: 14
+  
+  BUILD_PLATFORM: linux
+  BUILD_ARCHITECTURE: x64
 
 jobs:
   build:
@@ -16,9 +26,11 @@ jobs:
       - name: Chechout
         uses: actions/checkout@v4
 
-      - name: Setup build environment 
+      - name: Setup GCC
         run: |
-          sudo apt install -y build-essential
+          echo "deb http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee /etc/apt/sources.list.d/noble.list
+          sudo apt update
+          sudo apt install gcc-$BUILD_GCC_VERSION g++-$BUILD_GCC_VERSION
         
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
@@ -28,13 +40,13 @@ jobs:
         with:
           path: |
             ~/.xmake
-          key: xmake-linux-${{ hashFiles('xmake.lua') }}
+          key: xmake-${{ env.BUILD_PLATFORM }}-${{ hashFiles('xmake.lua') }}
           restore-keys: |
-            xmake-linux-
+            xmake-${{ env.BUILD_PLATFORM }}-
      
       - name: Configure
         run: |
-          xmake f -a x64 -m ${{ matrix.mode }} -p linux -v -y
+          xmake f -a ${{ env.BUILD_ARCHITECTURE }} -m ${{ matrix.mode }} -p ${{ env.BUILD_PLATFORM }} --toolchain=gcc-$BUILD_GCC_VERSION -v -y
     
       - name: Build
         run: |
@@ -43,6 +55,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: restore-mtime-${{ matrix.mode }}-linux-x64-${{ github.sha }}
+          name: restore-mtime-${{ matrix.mode }}-${{ env.BUILD_PLATFORM }}-x64-${{ github.sha }}
           path: |
-            build/linux/x64/${{ matrix.mode }}
+            build/${{ env.BUILD_PLATFORM }}/${{ env.BUILD_ARCHITECTURE }}/${{ matrix.mode }}
