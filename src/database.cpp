@@ -56,9 +56,9 @@ void Database::saveTo(std::string_view path, std::error_code& ec) {
     }
 }
 
-std::optional<Database::MTimeT> Database::queryLastModifiedTime(FileHashT hash) const {
-    if (!m_database.contains(hash)) return std::nullopt;
-    return m_database.at(hash);
+std::optional<Database::MTimeT> Database::queryLastModifiedTime(FileHashViewT hash) const {
+    if (!m_database.contains(hash.data())) return std::nullopt;
+    return m_database.at(hash.data());
 }
 
-void Database::storeLastModifiedTime(FileHashT hash, MTimeT mtime) { m_database.try_emplace(hash, mtime); }
+void Database::storeLastModifiedTime(FileHashT hash, MTimeT mtime) { m_database.try_emplace(std::move(hash), mtime); }
